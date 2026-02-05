@@ -20,11 +20,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
+        // Participants section
+        let participantsHTML = "";
+        if (details.participants.length > 0) {
+          participantsHTML = `
+            <div class="participants-section">
+              <strong>Participants:</strong>
+              <ul class="participants-list">
+                ${details.participants.map(p => `
+                  <li style="list-style:none; display:flex; align-items:center;">
+                    <span>${p}</span>
+                    <button class="delete-participant" title="Remove" data-activity="${name}" data-email="${p}" style="margin-left:8px; background:none; border:none; cursor:pointer; color:#d32f2f; font-size:18px;">&#128465;</button>
+                  </li>
+                `).join("")}
+              </ul>
+            </div>
+          `;
+        } else {
+          participantsHTML = `
+            <div class="participants-section no-participants">
+              <em>No participants yet.</em>
+            </div>
+          `;
+        }
+
         activityCard.innerHTML = `
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          ${participantsHTML}
         `;
 
         activitiesList.appendChild(activityCard);
@@ -62,6 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
@@ -82,5 +108,27 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Initialize app
+  // Delete participant handler
+  activitiesList.addEventListener("click", async (e) => {
+    if (e.target.classList.contains("delete-participant")) {
+      const activity = e.target.getAttribute("data-activity");
+      const email = e.target.getAttribute("data-email");
+      if (confirm(`Remove ${email} from ${activity}?`)) {
+        try {
+          const res = await fetch(`/activities/${encodeURIComponent(activity)}/participants/${encodeURIComponent(email)}`, {
+            method: "DELETE"
+          });
+          if (res.ok) {
+            fetchActivities();
+          } else {
+            alert("Failed to remove participant.");
+          }
+        } catch {
+          alert("Error removing participant.");
+        }
+      }
+    }
+  });
+
   fetchActivities();
 });
